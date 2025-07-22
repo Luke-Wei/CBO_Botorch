@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-CausalBayesianOptimization - 主实验脚本
-运行CBO vs BO完整对比实验
+CausalBayesianOptimization - Main Experiment Script
+Run CBO vs BO complete comparison experiments
 """
 
 import subprocess
@@ -21,7 +21,7 @@ else:
     print("   Using CPU (no CUDA available)")
 
 def run_experiment(algorithm, graph_type, num_trials=50, seed=0):
-    """运行单个实验"""
+    """Run a single experiment"""
     script_name = f"{algorithm}_botorch.py"
     cmd = [
         "python", script_name,
@@ -30,7 +30,7 @@ def run_experiment(algorithm, graph_type, num_trials=50, seed=0):
         "--seed", str(seed)
     ]
     
-    print(f"运行: {algorithm} on {graph_type} (seed {seed})")
+    print(f"Running: {algorithm} on {graph_type} (seed {seed})")
     
     try:
         env = os.environ.copy()
@@ -39,7 +39,7 @@ def run_experiment(algorithm, graph_type, num_trials=50, seed=0):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, env=env)
         
         if result.returncode == 0:
-            # 解析结果
+            # Parse results
             output_lines = result.stdout.strip().split('\n')
             final_value = None
             runtime = None
@@ -68,8 +68,8 @@ def run_experiment(algorithm, graph_type, num_trials=50, seed=0):
         return {"success": False, "error": str(e)}
 
 def main():
-    """主实验函数"""
-    print("🚀 开始CausalBayesianOptimization实验")
+    """Main experiment function"""
+    print("🚀 Starting CausalBayesianOptimization experiments")
     print("=" * 50)
     
     algorithms = ['BO', 'CBO']
@@ -77,8 +77,8 @@ def main():
     seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     num_trials = 100
     
-    print(f"配置: {len(algorithms)} 算法 × {len(graph_types)} 图 × {len(seeds)} 种子 × {num_trials} 迭代")
-    print(f"总实验数: {len(algorithms) * len(graph_types) * len(seeds)}")
+    print(f"Configuration: {len(algorithms)} algorithms × {len(graph_types)} graphs × {len(seeds)} seeds × {num_trials} iterations")
+    print(f"Total experiments: {len(algorithms) * len(graph_types) * len(seeds)}")
     
     all_results = {}
     start_time = time.time()
@@ -94,11 +94,11 @@ def main():
                 if result['success']:
                     print(f"  ✓ {algorithm}-{graph_type}-{seed}: {result['final_value']:.6f}")
                 else:
-                    print(f"  ✗ {algorithm}-{graph_type}-{seed}: 失败")
+                    print(f"  ✗ {algorithm}-{graph_type}-{seed}: Failed")
     
-    # 分析结果
+    # Analyze results
     print("\n" + "=" * 50)
-    print("📊 实验结果分析")
+    print("📊 Experimental Results Analysis")
     print("=" * 50)
     
     summary = {}
@@ -119,7 +119,7 @@ def main():
                 print(f"  {algorithm}: {mean_val:.6f} ± {std_val:.6f}")
                 graph_summary[algorithm] = {"mean": mean_val, "std": std_val, "values": values}
         
-        # 计算改进
+        # Calculate improvement
         if 'BO' in graph_summary and 'CBO' in graph_summary:
             bo_mean = graph_summary['BO']['mean']
             cbo_mean = graph_summary['CBO']['mean']
@@ -130,15 +130,15 @@ def main():
                 improvement = ((bo_mean - cbo_mean) / abs(bo_mean)) * 100
             
             if improvement > 0:
-                print(f"  → CBO改进: {improvement:.1f}%")
+                print(f"  → CBO improvement: {improvement:.1f}%")
             else:
-                print(f"  → BO优势: {-improvement:.1f}%")
+                print(f"  → BO advantage: {-improvement:.1f}%")
             
             graph_summary['improvement'] = improvement
         
         summary[graph_type] = graph_summary
     
-    # 保存结果
+    # Save results
     os.makedirs('results', exist_ok=True)
     final_results = {
         'experiment_config': {
@@ -155,8 +155,8 @@ def main():
     with open('results/final_results_100.json', 'w') as f:
         json.dump(final_results, f, indent=2)
     
-    print(f"\n🎉 实验完成! 结果保存至: results/final_results.json")
-    print(f"总用时: {time.time() - start_time:.1f} 秒")
+    print(f"\n🎉 Experiments completed! Results saved to: results/final_results.json")
+    print(f"Total time: {time.time() - start_time:.1f} seconds")
 
 if __name__ == "__main__":
     main()
