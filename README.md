@@ -2,88 +2,153 @@
 
 ## 🎯 Project Overview
 
-This project implements Causal Bayesian Optimization (CBO) algorithms using BoTorch, providing fair comparison with standard Bayesian Optimization (BO). 
+This project implements Causal Bayesian Optimization (CBO) algorithms using BoTorch, providing comprehensive comparison with standard Bayesian Optimization (BO) across multiple benchmark problems. 
 
-**Project Origin**: This project is adapted from [VirgiAgl/CausalBayesianOptimization](https://github.com/VirgiAgl/CausalBayesianOptimization), migrating from the original GPy-based implementation to a BoTorch-based implementation for better performance and modern deep learning framework support.
+**Project Origin**: Adapted from [VirgiAgl/CausalBayesianOptimization](https://github.com/VirgiAgl/CausalBayesianOptimization), migrated from GPy to BoTorch for better performance and modern PyTorch integration.
+
 
 ## 🚀 Quick Start
 
 ### Environment Setup
 
 ```bash
-# Activate PyTorch environment
-conda activate your_pytorch_env  # or your PyTorch environment
+# Activate recommended environment (tested)
+conda activate BT311  # or your PyTorch 2.0+ environment
 
-# Install dependencies
-pip install torch botorch gpytorch pandas numpy matplotlib seaborn jupyter
+# Verify dependencies
+python -c "import torch, botorch, gpytorch; print('✅ All dependencies available')"
 ```
 
-### Quick Testing
+**Required Dependencies**:
+- Python 3.11+
+- PyTorch 2.5+
+- BoTorch 0.10+
+- GPyTorch 1.11+
+- NumPy, Pandas, Matplotlib, Seaborn, Jupyter
+
+### Quick Testing (10 iterations)
 
 ```bash
-# Run quick test
+# Fast test on ToyGraph
 ./test.sh
 
-# Or manual testing
+# Or run individually
 python BO_botorch.py --graph_type ToyGraph --num_trials 10 --seed 0
 python CBO_botorch.py --graph_type ToyGraph --num_trials 10 --seed 0
 ```
 
-### Full Experiments
+### Full Experiments (Recommended)
 
 ```bash
-# Run complete CBO vs BO comparison experiments
+# Run complete CBO vs BO comparison (50 iterations, 5 seeds, 4 benchmarks)
+# Total: 40 experiments, takes ~1-2 hours
 python run_experiments.py
 
 # View results
 cat results/final_results.json
+
+# Interactive analysis
+jupyter notebook CBO_vs_BO_Analysis.ipynb
 ```
 
-## 📈 Usage & Analysis
 
-### Command Line Results
+## 📈 Usage Examples
+
+### Individual Algorithm Runs
 
 ```bash
-# View latest results
-cat results/final_results.json
+# Standard BO on different benchmarks
+python BO_botorch.py --graph_type CompleteGraph --num_trials 50 --seed 42
+python BO_botorch.py --graph_type CoralGraph --num_trials 100 --seed 0
 
-# Extract key data
-python -c "import json; data=json.load(open('results/final_results.json')); print(data['summary'])"
+# Causal BO with different parameters  
+python CBO_botorch.py --graph_type SimplifiedCoralGraph --num_trials 50 --seed 1
+python CBO_botorch.py --graph_type ToyGraph --num_trials 25 --seed 2
 ```
 
-### Custom Experiments
+### Batch Experiments
 
 ```bash
-# Run specific algorithms
-python BO_botorch.py --graph_type CompleteGraph --num_trials 100 --seed 42
-python CBO_botorch.py --graph_type CoralGraph --num_trials 50 --seed 0
-
-# GPU acceleration (if available)
-python CBO_botorch.py --graph_type ToyGraph --device cuda --num_trials 100
+# Multiple seeds for robustness
+for seed in {0..4}; do
+    python BO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
+    python CBO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
+done
 ```
 
-### Parameter Configuration
+### Results Analysis
 
-- `--graph_type`: Choose from ToyGraph, CompleteGraph, CoralGraph, SimplifiedCoralGraph
-- `--num_trials`: Number of optimization iterations (default: 100)
-- `--seed`: Random seed for reproducibility (default: 0)
-- `--device`: PyTorch device (auto, cpu, cuda)
+```bash
+# Quick summary
+python -c "
+import json
+data = json.load(open('results/final_results.json'))
+for graph in data['summary']:
+    imp = data['summary'][graph]['improvement']
+    winner = 'CBO' if imp > 0 else 'BO'
+    print(f'{graph}: {winner} wins by {abs(imp):.1f}%')
+"
 
-## 📋 Dependencies
+# Detailed statistics
+python -c "
+import json
+data = json.load(open('results/final_results.json'))
+for graph, stats in data['summary'].items():
+    print(f'{graph}:')
+    print(f'  CBO: {stats[\"CBO\"][\"mean\"]:.6f} ± {stats[\"CBO\"][\"std\"]:.6f}')
+    print(f'  BO:  {stats[\"BO\"][\"mean\"]:.6f} ± {stats[\"BO\"][\"std\"]:.6f}')
+"
+```
 
-- Python 3.8+
-- PyTorch 1.13+
-- BoTorch 0.8+
-- GPyTorch 1.9+
-- NumPy, Pandas, SciPy
-- Matplotlib, Seaborn (for visualization)
-- Jupyter (for interactive analysis)
+## 🔧 Parameter Configuration
 
-## 📄 License
+**Main Scripts**:
+- `BO_botorch.py`: Standard Bayesian Optimization
+- `CBO_botorch.py`: Causal Bayesian Optimization  
+- `run_experiments.py`: Automated batch experiments
 
-This project follows the same license terms as the original implementation. See LICENSE file for details.
+**Key Parameters**:
+- `--graph_type`: `ToyGraph`, `CompleteGraph`, `CoralGraph`, `SimplifiedCoralGraph`
+- `--num_trials`: Optimization iterations (default: 50, recommended: 50-100)
+- `--seed`: Random seed for reproducibility (0-9 recommended)
+- `--device`: PyTorch device (`cpu`, `cuda`, `auto`)
 
----
+**Experiment Configuration** (in `run_experiments.py`):
+- Algorithms: `['BO', 'CBO']`
+- Seeds: `[0, 1, 2, 3, 4]` (5 replications)
+- Iterations: `50` (production setting)
+- Benchmarks: All 4 graph types
 
-**🎯 Fair comparison implementation with complete consistency to original GPy benchmarks**
+## 📁 Project Structure
 
+```
+CausalBayesianOptimization_BoTorch/
+├── 🎯 Core Algorithms
+│   ├── BO_botorch.py              # Standard BO implementation  
+│   ├── CBO_botorch.py             # Causal BO implementation
+│   └── run_experiments.py         # Automated experiment runner
+│
+├── 🧪 Testing & Analysis  
+│   ├── test.sh                    # Quick test script
+│   └── CBO_vs_BO_Analysis.ipynb   # Comprehensive analysis notebook
+│
+├── 📊 Data & Results
+│   ├── Data/                      # Benchmark datasets
+│   │   ├── ToyGraph/             # Simple 3-node graph
+│   │   ├── CompleteGraph/        # Complete connectivity
+│   │   ├── CoralGraph/           # Real-world marine ecosystem  
+│   │   └── SimplifiedCoralGraph/ # Simplified marine model
+│   └── results/                  # Experimental results
+│       └── final_results.json    # Latest experiment summary
+│
+├── 🔧 Utilities
+│   ├── graphs/                   # Causal graph definitions
+│   └── utils_functions/          # BoTorch integration utilities
+│       ├── BO_functions_botorch.py
+│       ├── causal_acquisition_functions_botorch.py
+│       └── causal_kernels_botorch.py
+│
+└── 📚 Documentation
+    ├── README.md                 # This file
+    └── CBO_vs_BO_Analysis.ipynb  # Interactive analysis
+```

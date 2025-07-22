@@ -9,6 +9,16 @@ import json
 import time
 import os
 import numpy as np
+import torch
+
+# Set up device information
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"🔧 Experiments using device: {device}")
+if torch.cuda.is_available():
+    print(f"   GPU: {torch.cuda.get_device_name(0)}")
+    print(f"   GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+else:
+    print("   Using CPU (no CUDA available)")
 
 def run_experiment(algorithm, graph_type, num_trials=50, seed=0):
     """运行单个实验"""
@@ -64,8 +74,8 @@ def main():
     
     algorithms = ['BO', 'CBO']
     graph_types = ['ToyGraph', 'CompleteGraph', 'CoralGraph', 'SimplifiedCoralGraph']
-    seeds = [0, 1, 2, 3, 4]
-    num_trials = 50
+    seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    num_trials = 100
     
     print(f"配置: {len(algorithms)} 算法 × {len(graph_types)} 图 × {len(seeds)} 种子 × {num_trials} 迭代")
     print(f"总实验数: {len(algorithms) * len(graph_types) * len(seeds)}")
@@ -142,7 +152,7 @@ def main():
         'summary': summary
     }
     
-    with open('results/final_results.json', 'w') as f:
+    with open('results/final_results_100.json', 'w') as f:
         json.dump(final_results, f, indent=2)
     
     print(f"\n🎉 实验完成! 结果保存至: results/final_results.json")

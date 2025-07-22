@@ -13,6 +13,9 @@ from gpytorch.constraints import Interval
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
 
+# Global device setting for consistency
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 try:
     from .causal_kernels_botorch import CausalRBFKernel, StandardRBFKernel
     from .causal_acquisition_functions_botorch import CausalExpectedImprovement
@@ -168,11 +171,15 @@ def create_causal_gp_model(
     Returns:
         Tuple of (model, mll)
     """
-    # Convert to tensors
+    # Convert to tensors and move to device
     if not torch.is_tensor(train_X):
-        train_X = torch.as_tensor(train_X, dtype=torch.float32)
+        train_X = torch.as_tensor(train_X, dtype=torch.float32, device=device)
+    else:
+        train_X = train_X.to(device)
     if not torch.is_tensor(train_Y):
-        train_Y = torch.as_tensor(train_Y, dtype=torch.float32)
+        train_Y = torch.as_tensor(train_Y, dtype=torch.float32, device=device)
+    else:
+        train_Y = train_Y.to(device)
     
     # Ensure correct shapes
     if train_X.dim() == 1:
@@ -187,7 +194,7 @@ def create_causal_gp_model(
             train_Y=train_Y,
             variance_adjustment=variance_adjustment,
             mean_function=mean_function,
-        )
+        ).to(device)
     else:
         # Standard GP without causal prior
         model = SingleTaskGP(
@@ -195,7 +202,7 @@ def create_causal_gp_model(
             train_Y=train_Y,
             input_transform=Normalize(d=train_X.shape[-1]) if train_X.shape[-1] > 1 else None,
             outcome_transform=Standardize(m=train_Y.shape[-1]),
-        )
+        ).to(device)
     
     # Set up marginal log likelihood
     mll = ExactMarginalLogLikelihood(model.likelihood, model)

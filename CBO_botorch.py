@@ -5,6 +5,15 @@ import pandas as pd
 from typing import List, Dict, Tuple, Optional, Callable
 from collections import OrderedDict
 
+# Set up device (GPU if available, otherwise CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"🔧 CBO_botorch using device: {device}")
+if torch.cuda.is_available():
+    print(f"   GPU: {torch.cuda.get_device_name(0)}")
+    print(f"   GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+else:
+    print("   Using CPU (no CUDA available)")
+
 try:
     from utils_functions.BO_functions_botorch import (
         create_causal_gp_model, 
@@ -91,6 +100,18 @@ def CBO_botorch(
         Tuple of (current_cost, current_best_x, current_best_y, global_opt, observed, total_time)
     """
     
+    # Ensure data lists are on correct device
+    data_x_list = [data.to(device) if torch.is_tensor(data) else torch.as_tensor(data, device=device) 
+                   for data in data_x_list]
+    data_y_list = [data.to(device) if torch.is_tensor(data) else torch.as_tensor(data, device=device) 
+                   for data in data_y_list]
+    
+    # Ensure other inputs are on correct device
+    if torch.is_tensor(best_intervention_value):
+        best_intervention_value = best_intervention_value.to(device)
+    else:
+        best_intervention_value = torch.as_tensor(best_intervention_value, device=device)
+    
     # Initialize tracking variables
     current_cost = []
     global_opt = []
@@ -132,7 +153,7 @@ def CBO_botorch(
         if not isinstance(max_vals, (list, tuple, np.ndarray)):
             max_vals = [max_vals]
             
-        bounds_list[s] = torch.tensor([min_vals, max_vals], dtype=torch.float32)
+        bounds_list[s] = torch.tensor([min_vals, max_vals], dtype=torch.float32, device=device)
 
     # Initialize mean and variance functions
     mean_functions_list, var_functions_list = update_all_do_functions(
@@ -257,7 +278,7 @@ def CBO_botorch(
                 except Exception as e:
                     print(f"Warning: Acquisition optimization failed for set {s}: {e}")
                     # Fallback to random sampling
-                    random_point = torch.rand(1, bounds_list[s].shape[1])
+                    random_point = torch.rand(1, bounds_list[s].shape[1], device=device)
                     x_new_list[s] = bounds_list[s][0] + random_point * (bounds_list[s][1] - bounds_list[s][0])
                     y_acquisition_list[s] = 0.0
 
@@ -271,7 +292,7 @@ def CBO_botorch(
             if x_new_np.ndim == 1:
                 x_new_np = x_new_np.reshape(1, -1)
             y_new = target_function_list[index](x_new_np)
-            y_new_tensor = torch.as_tensor(y_new, dtype=torch.float32)
+            y_new_tensor = torch.as_tensor(y_new, dtype=torch.float32, device=device)
 
             print(f'Selected intervention: {var_to_intervene}')
             print(f'Selected point: {x_new_np}')
@@ -532,20 +553,20 @@ if __name__ == "__main__":
             # Run BO on this intervention set with causal knowledge
             bounds = torch.tensor([[dict_ranges[var][0] for var in intervention_set],
                                   [dict_ranges[var][1] for var in intervention_set]], 
-                                 dtype=torch.float32)
+                                 dtype=torch.float32, device=device)
             
-            # Initialize with random points
+            # Initialize with random points on device
             n_init = 5
-            initial_X = torch.rand(n_init, bounds.shape[1])
+            initial_X = torch.rand(n_init, bounds.shape[1], device=device)
             for i in range(bounds.shape[1]):
                 initial_X[:, i] = bounds[0, i] + initial_X[:, i] * (bounds[1, i] - bounds[0, i])
                 
             initial_Y = []
             for i in range(n_init):
-                x_np = initial_X[i].numpy().reshape(1, -1)
+                x_np = initial_X[i].cpu().numpy().reshape(1, -1)  # Move to CPU for numpy
                 y_val = causal_objective_function(x_np, intervention_set)
                 initial_Y.append(y_val)
-            initial_Y = torch.tensor(initial_Y).unsqueeze(-1)
+            initial_Y = torch.tensor(initial_Y, device=device).unsqueeze(-1)
             
             # Run short optimization on this intervention set
             try:

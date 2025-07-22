@@ -10,6 +10,15 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
 
+# Set up device (GPU if available, otherwise CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"🔧 BO_botorch using device: {device}")
+if torch.cuda.is_available():
+    print(f"   GPU: {torch.cuda.get_device_name(0)}")
+    print(f"   GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+else:
+    print("   Using CPU (no CUDA available)")
+
 try:
     from utils_functions.BO_functions_botorch import create_causal_gp_model
     from utils_functions.utils import (
@@ -78,10 +87,10 @@ def NonCausal_BO_botorch(
     # Compute input space dimension
     input_space = len(intervention_variables)
 
-    # Initialize tracking arrays
-    current_best_x = torch.zeros((num_trials + 1, input_space))
-    current_best_y = torch.zeros((num_trials + 1, 1))
-    current_cost = torch.zeros((num_trials + 1, 1))
+    # Initialize tracking arrays on correct device
+    current_best_x = torch.zeros((num_trials + 1, input_space), device=device)
+    current_best_y = torch.zeros((num_trials + 1, 1), device=device)
+    current_cost = torch.zeros((num_trials + 1, 1), device=device)
 
     # Get causal mean and variance functions if using causal prior
     mean_function_do = None
@@ -91,13 +100,19 @@ def NonCausal_BO_botorch(
             do_function, observational_samples, functions
         )
 
-    # Ensure data is in tensor format
+    # Ensure data is in tensor format and on correct device
     if not torch.is_tensor(interventional_data_x):
-        interventional_data_x = torch.as_tensor(interventional_data_x, dtype=torch.float32)
+        interventional_data_x = torch.as_tensor(interventional_data_x, dtype=torch.float32, device=device)
+    else:
+        interventional_data_x = interventional_data_x.to(device)
     if not torch.is_tensor(interventional_data_y):
-        interventional_data_y = torch.as_tensor(interventional_data_y, dtype=torch.float32)
+        interventional_data_y = torch.as_tensor(interventional_data_y, dtype=torch.float32, device=device)
+    else:
+        interventional_data_y = interventional_data_y.to(device)
     if not torch.is_tensor(min_intervention_value):
-        min_intervention_value = torch.as_tensor(min_intervention_value, dtype=torch.float32)
+        min_intervention_value = torch.as_tensor(min_intervention_value, dtype=torch.float32, device=device)
+    else:
+        min_intervention_value = min_intervention_value.to(device)
 
     # Initialize data
     data_x = interventional_data_x.clone()
@@ -277,9 +292,9 @@ def standard_BO_botorch(
     
     start_time = time.time()
     
-    # Initialize data
-    X = initial_X.clone()
-    Y = initial_Y.clone()
+    # Initialize data on correct device
+    X = initial_X.clone().to(device)
+    Y = initial_Y.clone().to(device)
     
     # Track best values over time
     if task == 'min':
@@ -291,13 +306,13 @@ def standard_BO_botorch(
         print(f'BO Iteration {i}')
         
         try:
-            # Fit GP model
+            # Fit GP model and move to device
             model = SingleTaskGP(
                 train_X=X, 
                 train_Y=Y,
                 input_transform=Normalize(d=X.shape[-1]) if X.shape[-1] > 1 else None,
                 outcome_transform=Standardize(m=Y.shape[-1])
-            )
+            ).to(device)
             mll = ExactMarginalLogLikelihood(model.likelihood, model)
             fit_gpytorch_model(mll)
             
@@ -336,17 +351,17 @@ def standard_BO_botorch(
         except Exception as e:
             print(f"Warning: BO step failed: {e}")
             # Random fallback
-            random_point = torch.rand(1, bounds.shape[1])
+            random_point = torch.rand(1, bounds.shape[1], device=device)
             x_new = bounds[0] + random_point * (bounds[1] - bounds[0])
             x_new = x_new.squeeze(0)
         
-        # Evaluate function
-        x_new_np = x_new.detach().numpy()
+        # Evaluate function (move to CPU for numpy operations)
+        x_new_np = x_new.detach().cpu().numpy()
         if x_new_np.ndim == 1:
             x_new_np = x_new_np.reshape(1, -1)
             
         y_new = target_function(x_new_np)
-        y_new_tensor = torch.as_tensor([[y_new]], dtype=torch.float32)
+        y_new_tensor = torch.as_tensor([[y_new]], dtype=torch.float32, device=device)
         
         # Update data
         X = torch.cat([X, x_new.unsqueeze(0)], dim=0)
@@ -507,20 +522,20 @@ if __name__ == "__main__":
         # Run standard BO
         bounds = torch.tensor([[dict_ranges[var][0] for var in intervention_variables],
                               [dict_ranges[var][1] for var in intervention_variables]], 
-                             dtype=torch.float32)
+                             dtype=torch.float32, device=device)
         
-        # Initialize with random points
+        # Initialize with random points on device
         n_init = 5
-        initial_X = torch.rand(n_init, bounds.shape[1])
+        initial_X = torch.rand(n_init, bounds.shape[1], device=device)
         for i in range(bounds.shape[1]):
             initial_X[:, i] = bounds[0, i] + initial_X[:, i] * (bounds[1, i] - bounds[0, i])
             
         initial_Y = []
         for i in range(n_init):
-            x_np = initial_X[i].numpy().reshape(1, -1)
+            x_np = initial_X[i].cpu().numpy().reshape(1, -1)  # Move to CPU for numpy
             y_val = objective_function(x_np)
             initial_Y.append(y_val)
-        initial_Y = torch.tensor(initial_Y).unsqueeze(-1)
+        initial_Y = torch.tensor(initial_Y, device=device).unsqueeze(-1)
         
         X_final, Y_final, best_values, runtime = standard_BO_botorch(
             num_trials=args.num_trials,
