@@ -1,0 +1,84 @@
+{
+  "test_config": {
+    "graph_type": "CompleteGraph",
+    "algorithms": [
+      "BO",
+      "CBO"
+    ],
+    "num_trials": 20,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "test_date": "2025-07-22T11:26:24.297891"
+  },
+  "results": {
+    "BO": {
+      "experiments": [
+        {
+          "seed": 0,
+          "success": true,
+          "final_value": -0.241303,
+          "runtime": 84.3875412940979,
+          "error": null
+        },
+        {
+          "seed": 1,
+          "success": true,
+          "final_value": -0.241511,
+          "runtime": 68.26198410987854,
+          "error": null
+        },
+        {
+          "seed": 2,
+          "success": true,
+          "final_value": -0.240332,
+          "runtime": 58.41113257408142,
+          "error": null
+        }
+      ],
+      "summary": {
+        "success_rate": 1.0,
+        "successful_runs": 3,
+        "total_runs": 3,
+        "mean_value": -0.24104866666666666,
+        "min_value": -0.241511,
+        "max_value": -0.240332
+      }
+    },
+    "CBO": {
+      "experiments": [
+        {
+          "seed": 0,
+          "success": true,
+          "final_value": -1.733827,
+          "runtime": 17.669601917266846,
+          "error": null
+        },
+        {
+          "seed": 1,
+          "success": true,
+          "final_value": -1.734671,
+          "runtime": 12.545193672180176,
+          "error": null
+        },
+        {
+          "seed": 2,
+          "success": true,
+          "final_value": -1.885429,
+          "runtime": 9.398491382598877,
+          "error": null
+        }
+      ],
+      "summary": {
+        "success_rate": 1.0,
+        "successful_runs": 3,
+        "total_runs": 3,
+        "mean_value": -1.7846423333333334,
+        "min_value": -1.885429,
+        "max_value": -1.733827
+      }
+    }
+  }
+}

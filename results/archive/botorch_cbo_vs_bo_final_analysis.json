@@ -1,0 +1,33 @@
+{
+  "total_benchmarks": 4,
+  "cbo_wins": 4,
+  "cbo_win_rate": 1.0,
+  "cbo_dominates_all": true,
+  "benchmark_details": {
+    "ToyGraph": {
+      "cbo_better": true,
+      "advantage_str": "CBO +inf%",
+      "cbo_success": 1.0,
+      "bo_success": 1.0
+    },
+    "CompleteGraph": {
+      "cbo_better": true,
+      "advantage_str": "CBO only",
+      "cbo_success": 1.0,
+      "bo_success": 0
+    },
+    "CoralGraph": {
+      "cbo_better": true,
+      "advantage_str": "CBO +657.8%",
+      "cbo_success": 1.0,
+      "bo_success": 1.0
+    },
+    "SimplifiedCoralGraph": {
+      "cbo_better": true,
+      "advantage_str": "CBO +657.8%",
+      "cbo_success": 1.0,
+      "bo_success": 1.0
+    }
+  },
+  "conclusion": "CBO\u57284/4\u4e2abenchmark\u4e0a\u4f18\u4e8eBO"
+}

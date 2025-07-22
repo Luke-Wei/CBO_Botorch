@@ -1,0 +1,78 @@
+{
+  "algorithm": "BoTorch_CBO",
+  "graph_type": "ToyGraph",
+  "config": {
+    "graphs": [
+      "ToyGraph",
+      "CompleteGraph",
+      "CoralGraph",
+      "SimplifiedCoralGraph"
+    ],
+    "algorithms": [
+      "CBO",
+      "BO"
+    ],
+    "num_trials": 100,
+    "seeds": [
+      42,
+      123,
+      456,
+      789,
+      999
+    ],
+    "timeout": 7200
+  },
+  "results": [
+    {
+      "seed": 42,
+      "final_value": null,
+      "trajectory": [],
+      "run_time": 4.795452117919922,
+      "success": true,
+      "error": null
+    },
+    {
+      "seed": 123,
+      "final_value": null,
+      "trajectory": [],
+      "run_time": 3.571694850921631,
+      "success": true,
+      "error": null
+    },
+    {
+      "seed": 456,
+      "final_value": null,
+      "trajectory": [],
+      "run_time": 3.743258237838745,
+      "success": true,
+      "error": null
+    },
+    {
+      "seed": 789,
+      "final_value": null,
+      "trajectory": [],
+      "run_time": 3.538780689239502,
+      "success": true,
+      "error": null
+    },
+    {
+      "seed": 999,
+      "final_value": null,
+      "trajectory": [],
+      "run_time": 3.493701696395874,
+      "success": true,
+      "error": null
+    }
+  ],
+  "start_time": 1753015823.9260352,
+  "statistics": {
+    "success_rate": 0,
+    "mean_final_value": null,
+    "std_final_value": null,
+    "min_final_value": null,
+    "max_final_value": null,
+    "mean_run_time": 3.8285775184631348,
+    "total_experiments": 5
+  },
+  "end_time": 1753015843.069605
+}
