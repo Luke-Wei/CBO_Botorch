@@ -11,13 +11,7 @@ This project implements Causal Bayesian Optimization (CBO) algorithms using BoTo
 
 ### Environment Setup
 
-```bash
-# Activate recommended environment (tested)
-conda activate BT311  # or your PyTorch 2.0+ environment
-
-# Verify dependencies
-python -c "import torch, botorch, gpytorch; print('✅ All dependencies available')"
-```
+# Activate recommended environment
 
 **Required Dependencies**:
 - Python 3.11+
@@ -26,18 +20,8 @@ python -c "import torch, botorch, gpytorch; print('✅ All dependencies availabl
 - GPyTorch 1.11+
 - NumPy, Pandas, Matplotlib, Seaborn, Jupyter
 
-### Quick Testing (10 iterations)
 
-```bash
-# Fast test on ToyGraph
-./test.sh
-
-# Or run individually
-python BO_botorch.py --graph_type ToyGraph --num_trials 10 --seed 0
-python CBO_botorch.py --graph_type ToyGraph --num_trials 10 --seed 0
-```
-
-### Full Experiments (Recommended)
+### Full Experiments
 
 ```bash
 # Run complete CBO vs BO comparison (50 iterations, 5 seeds, 4 benchmarks)
@@ -51,29 +35,6 @@ jupyter notebook CBO_vs_BO_Analysis.ipynb
 ```
 
 
-## 📈 Usage Examples
-
-### Individual Algorithm Runs
-
-```bash
-# Standard BO on different benchmarks
-python BO_botorch.py --graph_type CompleteGraph --num_trials 50 --seed 42
-python BO_botorch.py --graph_type CoralGraph --num_trials 100 --seed 0
-
-# Causal BO with different parameters  
-python CBO_botorch.py --graph_type SimplifiedCoralGraph --num_trials 50 --seed 1
-python CBO_botorch.py --graph_type ToyGraph --num_trials 25 --seed 2
-```
-
-### Batch Experiments
-
-```bash
-# Multiple seeds for robustness
-for seed in {0..4}; do
-    python BO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
-    python CBO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
-done
-```
 
 ## 🔧 Parameter Configuration
 
@@ -93,37 +54,3 @@ done
 - Seeds: `[0, 1, 2, 3, 4]` (5 replications)
 - Iterations: `50` (production setting)
 - Benchmarks: All 4 graph types
-
-## 📁 Project Structure
-
-```
-CausalBayesianOptimization_BoTorch/
-├── 🎯 Core Algorithms
-│   ├── BO_botorch.py              # Standard BO implementation  
-│   ├── CBO_botorch.py             # Causal BO implementation
-│   └── run_experiments.py         # Automated experiment runner
-│
-├── 🧪 Testing & Analysis  
-│   ├── test.sh                    # Quick test script
-│   └── CBO_vs_BO_Analysis.ipynb   # Comprehensive analysis notebook
-│
-├── 📊 Data & Results
-│   ├── Data/                      # Benchmark datasets
-│   │   ├── ToyGraph/             # Simple 3-node graph
-│   │   ├── CompleteGraph/        # Complete connectivity
-│   │   ├── CoralGraph/           # Real-world marine ecosystem  
-│   │   └── SimplifiedCoralGraph/ # Simplified marine model
-│   └── results/                  # Experimental results
-│       └── final_results.json    # Latest experiment summary
-│
-├── 🔧 Utilities
-│   ├── graphs/                   # Causal graph definitions
-│   └── utils_functions/          # BoTorch integration utilities
-│       ├── BO_functions_botorch.py
-│       ├── causal_acquisition_functions_botorch.py
-│       └── causal_kernels_botorch.py
-│
-└── 📚 Documentation
-    ├── README.md                 # This file
-    └── CBO_vs_BO_Analysis.ipynb  # Interactive analysis
-```
