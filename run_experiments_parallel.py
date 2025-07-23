@@ -16,6 +16,40 @@ import threading
 from queue import Queue
 import psutil
 
+# 尝试导入pynvml进行更专业的GPU监控
+try:
+    import pynvml
+    PYNVML_AVAILABLE = True
+except ImportError:
+    PYNVML_AVAILABLE = False
+    print("💡 提示: 安装 pynvml 库可获得更精确的GPU监控: pip install pynvml")
+
+def get_gpu_memory_usage_pynvml():
+    """使用pynvml获取GPU内存使用情况（推荐方法）"""
+    if not PYNVML_AVAILABLE:
+        return None
+    
+    try:
+        pynvml.nvmlInit()
+        gpu_info = []
+        device_count = pynvml.nvmlDeviceGetCount()
+        
+        for i in range(device_count):
+            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+            memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            
+            memory_used_gb = memory_info.used / 1024**3
+            memory_total_gb = memory_info.total / 1024**3
+            gpu_util = utilization.gpu
+            
+            gpu_info.append(f"GPU{i}: {memory_used_gb:.1f}/{memory_total_gb:.1f}GB ({gpu_util}%)")
+        
+        return gpu_info
+    except Exception as e:
+        print(f"pynvml监控失败: {e}")
+        return None
+
 def get_gpu_info():
     """Get GPU information"""
     if not torch.cuda.is_available():
@@ -56,7 +90,7 @@ def run_single_experiment(experiment_config):
         if gpu_id is not None:
             env['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
         
-        print(f"🏃‍♂️ Starting experiment {experiment_id} (GPU {gpu_id if gpu_id is not None else 'CPU'})")
+        print(f"Starting experiment {experiment_id} (GPU {gpu_id if gpu_id is not None else 'CPU'})")
         
         start_time = time.time()
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, env=env)
@@ -197,11 +231,34 @@ def monitor_system_resources():
             memory_info = psutil.virtual_memory()
             
             if torch.cuda.is_available():
-                gpu_info_str = []
-                for i in range(torch.cuda.device_count()):
-                    memory_used = torch.cuda.memory_allocated(i) / 1024**3
-                    memory_total = torch.cuda.get_device_properties(i).total_memory / 1024**3
-                    gpu_info_str.append(f"GPU{i}: {memory_used:.1f}/{memory_total:.1f}GB")
+                # 优先使用pynvml方法
+                gpu_info_str = get_gpu_memory_usage_pynvml()
+                
+                if gpu_info_str is None:
+                    # 备选方案1: 使用nvidia-smi
+                    gpu_info_str = []
+                    for i in range(torch.cuda.device_count()):
+                        try:
+                            result = subprocess.run([
+                                'nvidia-smi', 
+                                '--id=' + str(i),
+                                '--query-gpu=memory.used,memory.total,utilization.gpu',
+                                '--format=csv,noheader,nounits'
+                            ], capture_output=True, text=True, timeout=5)
+                            
+                            if result.returncode == 0:
+                                memory_used, memory_total, gpu_util = result.stdout.strip().split(', ')
+                                memory_used_gb = float(memory_used) / 1024
+                                memory_total_gb = float(memory_total) / 1024
+                                gpu_info_str.append(f"GPU{i}: {memory_used_gb:.1f}/{memory_total_gb:.1f}GB ({gpu_util}%)")
+                            else:
+                                gpu_info_str.append(f"GPU{i}: N/A")
+                        except Exception as e:
+                            # 备选方案2: 回退到torch方法（仅显示当前进程）
+                            memory_used = torch.cuda.memory_allocated(i) / 1024**3
+                            memory_total = torch.cuda.get_device_properties(i).total_memory / 1024**3
+                            gpu_info_str.append(f"GPU{i}: {memory_used:.1f}/{memory_total:.1f}GB (进程级)")
+                
                 gpu_status = ", ".join(gpu_info_str)
             else:
                 gpu_status = "No GPU"
@@ -229,8 +286,8 @@ def main():
     # Experiment configuration
     algorithms = ['BO', 'CBO']
     graph_types = ['ToyGraph', 'CompleteGraph', 'CoralGraph', 'SimplifiedCoralGraph']
-    seeds = [0, 1, 2]  # Reduced seeds for faster results, adjust as needed
-    num_trials = 50  # Reduced trials for faster completion, adjust as needed
+    seeds = list(range(50))  
+    num_trials = 100  # Quick test with fewer trials
     
     # Parallel configuration
     max_parallel_per_gpu = 3 if gpu_info["num_gpus"] > 0 else 1  # Max 3 parallel experiments per GPU
