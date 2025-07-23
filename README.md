@@ -41,7 +41,6 @@ python CBO_botorch.py --graph_type ToyGraph --num_trials 10 --seed 0
 
 ```bash
 # Run complete CBO vs BO comparison (50 iterations, 5 seeds, 4 benchmarks)
-# Total: 40 experiments, takes ~1-2 hours
 python run_experiments.py
 
 # View results
@@ -74,30 +73,6 @@ for seed in {0..4}; do
     python BO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
     python CBO_botorch.py --graph_type CoralGraph --num_trials 50 --seed $seed
 done
-```
-
-### Results Analysis
-
-```bash
-# Quick summary
-python -c "
-import json
-data = json.load(open('results/final_results.json'))
-for graph in data['summary']:
-    imp = data['summary'][graph]['improvement']
-    winner = 'CBO' if imp > 0 else 'BO'
-    print(f'{graph}: {winner} wins by {abs(imp):.1f}%')
-"
-
-# Detailed statistics
-python -c "
-import json
-data = json.load(open('results/final_results.json'))
-for graph, stats in data['summary'].items():
-    print(f'{graph}:')
-    print(f'  CBO: {stats[\"CBO\"][\"mean\"]:.6f} ± {stats[\"CBO\"][\"std\"]:.6f}')
-    print(f'  BO:  {stats[\"BO\"][\"mean\"]:.6f} ± {stats[\"BO\"][\"std\"]:.6f}')
-"
 ```
 
 ## 🔧 Parameter Configuration
