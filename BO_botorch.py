@@ -27,6 +27,9 @@ try:
     from utils_functions.graph_functions import Intervention_function
     from utils_functions.compute_update_do_functions import mean_var_do_functions, get_do_function_name
     from utils_functions.cost_functions import total_cost
+    from utils_functions.regret_utils import (
+        calculate_instantaneous_regret, calculate_simple_regret, determine_task_type
+    )
 except ImportError as e:
     print(f"Warning: Import error in BO_botorch: {e}")
     print("Make sure all required dependencies are installed:")
@@ -46,6 +49,7 @@ def NonCausal_BO_botorch(
     min_intervention_value: torch.Tensor,
     min_y: float,
     intervention_variables: List,
+    graph_type: str = 'ToyGraph',
     Causal_prior: bool = False,
     acquisition_function: str = 'EI',
     num_restarts: int = 10,
@@ -255,6 +259,19 @@ def NonCausal_BO_botorch(
         current_best_x[j + 1] = data_x[best_idx]
         
         print(f'Current best Y: {current_best_y[j + 1].item()}')
+        
+        # Calculate and output regret for tracking
+        # 使用当前评估点的值计算instantaneous regret
+        current_y_value = y_new if isinstance(y_new, (int, float)) else float(y_new)
+        instantaneous_regret = calculate_instantaneous_regret(current_y_value, graph_type, task)
+        
+        # 计算simple regret (best-so-far regret)
+        current_best_value = current_best_y[j + 1].item()
+        simple_regret = calculate_simple_regret(current_best_value, graph_type, task)
+        
+        # 输出regret值供run_experiments_parallel.py解析
+        print(f"Instantaneous regret: {instantaneous_regret}")
+        print(f"Simple regret: {simple_regret}")
 
     total_time = time.time() - start_time
 
@@ -267,6 +284,7 @@ def standard_BO_botorch(
     target_function: callable,
     initial_X: torch.Tensor,
     initial_Y: torch.Tensor,
+    graph_type: str = 'ToyGraph',
     acquisition_function: str = 'EI',
     num_restarts: int = 10,
     raw_samples: int = 100,
@@ -375,6 +393,19 @@ def standard_BO_botorch(
             
         print(f'New point: {x_new_np}, Value: {y_new}')
         print(f'Current best: {best_values[-1]}')
+        
+        # Calculate and output regret for tracking
+        # 使用当前评估点的值计算instantaneous regret
+        current_y_value = y_new if isinstance(y_new, (int, float)) else float(y_new)
+        instantaneous_regret = calculate_instantaneous_regret(current_y_value, graph_type, task)
+        
+        # 计算simple regret (best-so-far regret)
+        current_best_value = best_values[-1]
+        simple_regret = calculate_simple_regret(current_best_value, graph_type, task)
+        
+        # 输出regret值供run_experiments_parallel.py解析
+        print(f"Instantaneous regret: {instantaneous_regret}")
+        print(f"Simple regret: {simple_regret}")
     
     total_time = time.time() - start_time
     
@@ -543,6 +574,7 @@ if __name__ == "__main__":
             target_function=objective_function,
             initial_X=initial_X,
             initial_Y=initial_Y,
+            graph_type=args.graph_type,
             task='min'
         )
         

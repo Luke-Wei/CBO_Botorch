@@ -31,7 +31,7 @@ python run_experiments.py
 cat results/final_results.json
 
 # Interactive analysis
-jupyter notebook CBO_vs_BO_Analysis.ipynb
+jupyter notebook Result_Analysis.ipynb
 ```
 
 

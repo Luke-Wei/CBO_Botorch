@@ -34,6 +34,9 @@ try:
     from utils_functions.graph_functions import Intervention_function
     from utils_functions.compute_update_do_functions import update_all_do_functions
     from utils_functions.cost_functions import total_cost
+    from utils_functions.regret_utils import (
+        calculate_instantaneous_regret, calculate_simple_regret, determine_task_type
+    )
 except ImportError as e:
     print(f"Warning: Import error in CBO_botorch: {e}")
     print("Make sure all required dependencies are installed:")
@@ -58,6 +61,7 @@ def CBO_botorch(
     num_additional_observations: int,
     costs: Dict,
     full_observational_samples: pd.DataFrame,
+    graph_type: str = 'ToyGraph',
     task: str = 'min',
     max_N: int = 200,
     initial_num_obs_samples: int = 100,
@@ -344,6 +348,18 @@ def CBO_botorch(
             global_opt.append(current_global)
             
             print(f'####### Current_global ######### {current_global}')
+            
+            # Calculate and output regret for tracking (only for intervention steps)
+            # 使用当前评估点的值计算instantaneous regret
+            current_y_value = y_val if isinstance(y_val, (int, float)) else float(y_val)
+            instantaneous_regret = calculate_instantaneous_regret(current_y_value, graph_type, task)
+            
+            # 计算simple regret (best-so-far regret)
+            simple_regret = calculate_simple_regret(current_global, graph_type, task)
+            
+            # 输出regret值供run_experiments_parallel.py解析
+            print(f"Instantaneous regret: {instantaneous_regret}")
+            print(f"Simple regret: {simple_regret}")
 
     # Compute total time
     total_time = time.time() - start_time
